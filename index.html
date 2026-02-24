@@ -119,9 +119,13 @@
 
     <!-- Header -->
     <header class="header p-3 flex justify-between items-center shadow-sm z-10">
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2 sm:gap-4">
             <div class="flex items-center gap-2">
-                <div class="bg-blue-600 p-1.5 rounded-lg">
+                <!-- Botón Menú Colapsable -->
+                <button onclick="toggleSidebar()" class="p-1.5 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-md transition-colors" title="Alternar panel">
+                    <i data-lucide="menu" class="w-5 h-5"></i>
+                </button>
+                <div class="bg-blue-600 p-1.5 rounded-lg hidden sm:block">
                     <i data-lucide="cpu" class="text-white w-5 h-5"></i>
                 </div>
                 <h1 class="text-lg font-bold hidden md:block">AIVA <span class="text-blue-500">IDE</span></h1>
@@ -131,29 +135,29 @@
             <div class="flex items-center gap-2 bg-slate-800/10 light-mode:bg-slate-200/50 p-1 rounded border border-slate-700/30">
                 <i data-lucide="folder" class="w-3 h-3 text-slate-500 ml-1"></i>
                 <input type="text" id="projectNameInput" placeholder="Nombre_Proyecto" value="Mi_Proyecto_AIVA"
-                    class="bg-transparent text-xs outline-none w-40 font-mono py-1">
+                    class="bg-transparent text-xs outline-none w-20 sm:w-40 font-mono py-1">
             </div>
         </div>
         
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 sm:gap-3">
             <!-- Botón Modo Claro/Oscuro -->
             <button onclick="toggleTheme()" class="p-2 rounded-full hover:bg-slate-700/20 transition-all" title="Cambiar Tema">
                 <i id="themeIcon" data-lucide="moon" class="w-5 h-5"></i>
             </button>
 
             <!-- Botón Cargar ZIP -->
-            <label class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-md text-xs border border-slate-600 cursor-pointer transition-all">
+            <label class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-2 sm:px-3 py-1.5 rounded-md text-xs border border-slate-600 cursor-pointer transition-all" title="Cargar ZIP">
                 <i data-lucide="upload-cloud" class="w-4 h-4 text-blue-400"></i>
                 <span class="hidden sm:inline">Cargar ZIP</span>
                 <input type="file" id="zipInput" accept=".zip" class="hidden">
             </label>
 
-            <button onclick="togglePreview()" id="previewBtn" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-md text-xs border border-slate-600 transition-all">
+            <button onclick="togglePreview()" id="previewBtn" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-2 sm:px-3 py-1.5 rounded-md text-xs border border-slate-600 transition-all" title="Vista Previa">
                 <i data-lucide="play" class="w-4 h-4"></i>
                 <span class="hidden sm:inline">Vista Previa</span>
             </button>
 
-            <button onclick="downloadProject()" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-md text-xs transition-all font-bold shadow-lg shadow-blue-500/20">
+            <button onclick="downloadProject()" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-2 sm:px-3 py-1.5 rounded-md text-xs transition-all font-bold shadow-lg shadow-blue-500/20" title="Descargar ZIP">
                 <i data-lucide="download" class="w-4 h-4"></i>
                 <span class="hidden sm:inline">Descargar ZIP</span>
             </button>
@@ -161,24 +165,28 @@
     </header>
 
     <div class="flex flex-1 overflow-hidden">
-        <aside class="sidebar w-64 flex flex-col shrink-0">
-            <div class="p-4 flex justify-between items-center border-b border-slate-800/10">
-                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Explorador</span>
+        <!-- Explorador / Panel Lateral -->
+        <aside id="sidebar" class="sidebar w-64 flex flex-col shrink-0 transition-all duration-300">
+            <div id="sidebarHeader" class="p-4 flex justify-between items-center border-b border-slate-800/10">
+                <span id="sidebarTitle" class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Explorador</span>
                 <button onclick="createNewFile()" class="p-1 hover:bg-slate-700/20 rounded text-slate-400 hover:text-blue-500 transition-colors" title="Nuevo Archivo">
                     <i data-lucide="file-plus" class="w-4 h-4"></i>
                 </button>
             </div>
+            
             <!-- Lista de Archivos -->
             <div id="fileList" class="flex-1 overflow-y-auto py-2"></div>
             
-            <div class="p-4 border-t border-slate-800/10 bg-black/5">
-                <div class="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase mb-2">
-                    <i data-lucide="check-circle" class="w-3 h-3 text-green-500"></i> Status
+            <div id="sidebarFooter" class="p-4 border-t border-slate-800/10 bg-black/5 flex flex-col items-start">
+                <div class="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase mb-2" title="Status Ok">
+                    <i data-lucide="check-circle" class="w-4 h-4 text-green-500 shrink-0"></i>
+                    <span id="statusTitle">Status</span>
                 </div>
-                <div id="errorLog" class="text-[11px] opacity-70 italic font-mono">IDE Listo.</div>
+                <div id="errorLog" class="text-[11px] opacity-70 italic font-mono w-full truncate">IDE Listo.</div>
             </div>
         </aside>
 
+        <!-- Editor Principal -->
         <main class="flex-1 flex flex-col min-w-0">
             <div class="header px-4 py-2 flex items-center justify-between">
                 <div class="flex items-center gap-2 overflow-hidden">
@@ -195,7 +203,8 @@
             </div>
         </main>
 
-        <section id="preview-container" class="w-0 overflow-hidden flex flex-col border-l border-slate-800 shadow-2xl shrink-0">
+        <!-- Panel de Vista Previa -->
+        <section id="preview-container" class="w-0 overflow-hidden flex flex-col border-l border-slate-800 shadow-2xl shrink-0 transition-all duration-300">
             <div class="bg-white border-b border-slate-200 p-2 flex justify-between items-center">
                 <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-2">Vista Previa</span>
                 <div class="flex gap-2 mr-2">
@@ -208,6 +217,7 @@
         </section>
     </div>
 
+    <!-- Notificaciones -->
     <div id="toast" class="fixed bottom-6 right-6 transform translate-y-20 opacity-0 transition-all duration-300 flex items-center gap-3 bg-slate-800 text-white border border-slate-700 p-4 rounded-xl shadow-2xl z-50">
         <p id="toastMessage" class="text-xs font-medium"></p>
     </div>
@@ -221,7 +231,6 @@
 <head>
   <meta charset="UTF-8">
   <title>Proyecto AIVA</title>
-  <!-- La vista previa inyectará el CSS automáticamente -->
 </head>
 <body>
   <div class="card">
@@ -229,7 +238,6 @@
     <p id="mensaje">Tu entorno de desarrollo profesional está listo.</p>
     <button id="btnAccion">Ejecutar Código</button>
   </div>
-  <!-- La vista previa inyectará el JS automáticamente -->
 </body>
 </html>` 
             },
@@ -317,9 +325,11 @@ boton.addEventListener('click', () => {
 });` 
             }
         ];
+        
         let activeFileIndex = 0;
         let isDarkMode = true;
         let isPreviewOpen = false;
+        let isSidebarOpen = true; // Por defecto abierto
 
         const textarea = document.getElementById('real-textarea');
         const highlightContent = document.getElementById('highlight-content');
@@ -332,7 +342,12 @@ boton.addEventListener('click', () => {
 
         function init() {
             lucide.createIcons();
-            renderFileList();
+            
+            // Auto-ocultar panel en pantallas pequeñas (móviles/tablets verticales)
+            if (window.innerWidth <= 768) {
+                isSidebarOpen = false;
+            }
+            updateSidebarView(); // Llama a renderFileList internamente
             syncEditor();
             
             textarea.addEventListener('input', () => {
@@ -359,6 +374,50 @@ boton.addEventListener('click', () => {
             });
 
             zipInput.addEventListener('change', handleZipUpload);
+        }
+
+        function toggleSidebar() {
+            isSidebarOpen = !isSidebarOpen;
+            updateSidebarView();
+        }
+
+        function updateSidebarView() {
+            const sidebar = document.getElementById('sidebar');
+            const sidebarTitle = document.getElementById('sidebarTitle');
+            const statusTitle = document.getElementById('statusTitle');
+            const errorLog = document.getElementById('errorLog');
+            const sidebarHeader = document.getElementById('sidebarHeader');
+            const sidebarFooter = document.getElementById('sidebarFooter');
+
+            if (isSidebarOpen) {
+                // Expandido
+                sidebar.classList.remove('w-16');
+                sidebar.classList.add('w-64');
+                sidebarTitle.classList.remove('hidden');
+                statusTitle.classList.remove('hidden');
+                errorLog.classList.remove('hidden');
+                
+                sidebarHeader.classList.remove('justify-center', 'px-0', 'py-4');
+                sidebarHeader.classList.add('justify-between', 'p-4');
+                
+                sidebarFooter.classList.remove('items-center', 'px-0', 'py-4');
+                sidebarFooter.classList.add('items-start', 'p-4');
+            } else {
+                // Colapsado (Solo Iconos)
+                sidebar.classList.remove('w-64');
+                sidebar.classList.add('w-16');
+                sidebarTitle.classList.add('hidden');
+                statusTitle.classList.add('hidden');
+                errorLog.classList.add('hidden');
+                
+                sidebarHeader.classList.remove('justify-between', 'p-4');
+                sidebarHeader.classList.add('justify-center', 'px-0', 'py-4');
+                
+                sidebarFooter.classList.remove('items-start', 'p-4');
+                sidebarFooter.classList.add('items-center', 'px-0', 'py-4');
+            }
+            
+            renderFileList(); // Actualizar diseño interno de la lista
         }
 
         function syncEditor() {
@@ -389,7 +448,6 @@ boton.addEventListener('click', () => {
         }
 
         function updatePreview() {
-            // Encuentra dinámicamente el primer archivo de cada tipo, sin importar su nombre
             const html = files.find(f => f.name.endsWith('.html'))?.content || "<h1>No hay archivo HTML</h1>";
             const css = files.find(f => f.name.endsWith('.css'))?.content || "";
             const js = files.find(f => f.name.endsWith('.js'))?.content || "";
@@ -399,37 +457,58 @@ boton.addEventListener('click', () => {
 
         function togglePreview() {
             isPreviewOpen = !isPreviewOpen;
-            // Ajustamos el ancho para que la vista previa se vea mejor
-            previewContainer.style.width = isPreviewOpen ? '45%' : '0px';
+            
+            // En pantallas pequeñas la vista previa debe ocupar más espacio
+            const previewWidth = window.innerWidth <= 768 ? '100%' : '45%';
+            previewContainer.style.width = isPreviewOpen ? previewWidth : '0px';
+            
+            // Ocultar el panel de código en móviles si la vista previa se abre al 100%
+            if (isPreviewOpen && window.innerWidth <= 768) {
+                if(isSidebarOpen) toggleSidebar(); // Asegura de colapsar la barra
+            }
+            
             if (isPreviewOpen) updatePreview();
         }
 
         function renderFileList() {
             const list = document.getElementById('fileList');
             list.innerHTML = '';
+            
             files.forEach((f, i) => {
                 const div = document.createElement('div');
-                div.className = `group px-4 py-2 flex items-center justify-between cursor-pointer text-xs font-mono transition-all ${i === activeFileIndex ? 'bg-blue-600/10 text-blue-500 border-r-4 border-blue-500 font-bold' : 'opacity-60 hover:opacity-100 hover:bg-slate-700/10'}`;
-                div.onclick = () => { activeFileIndex = i; renderFileList(); loadActiveFile(); };
                 
                 let icon = 'file-code';
                 if(f.name.endsWith('.html')) icon = 'layout';
                 if(f.name.endsWith('.css')) icon = 'palette';
 
-                div.innerHTML = `
-                    <div class="flex items-center gap-2 overflow-hidden">
-                        <i data-lucide="${icon}" class="w-3.5 h-3.5 shrink-0"></i>
-                        <span class="truncate">${f.name}</span>
-                    </div>
-                    <div class="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onclick="event.stopPropagation(); renameFile(${i})" class="p-1.5 hover:text-blue-500 hover:bg-slate-800 rounded transition-colors" title="Renombrar">
-                            <i data-lucide="edit-2" class="w-3 h-3"></i>
-                        </button>
-                        <button onclick="event.stopPropagation(); deleteFile(${i})" class="p-1.5 hover:text-red-500 hover:bg-slate-800 rounded transition-colors" title="Eliminar">
-                            <i data-lucide="trash-2" class="w-3 h-3"></i>
-                        </button>
-                    </div>
-                `;
+                if (isSidebarOpen) {
+                    // Vista Expandida
+                    div.className = `group px-4 py-2 flex items-center justify-between cursor-pointer text-xs font-mono transition-all ${i === activeFileIndex ? 'bg-blue-600/10 text-blue-500 border-r-4 border-blue-500 font-bold' : 'opacity-60 hover:opacity-100 hover:bg-slate-700/10'}`;
+                    div.innerHTML = `
+                        <div class="flex items-center gap-2 overflow-hidden">
+                            <i data-lucide="${icon}" class="w-3.5 h-3.5 shrink-0"></i>
+                            <span class="truncate">${f.name}</span>
+                        </div>
+                        <div class="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="event.stopPropagation(); renameFile(${i})" class="p-1.5 hover:text-blue-500 hover:bg-slate-800 rounded transition-colors" title="Renombrar">
+                                <i data-lucide="edit-2" class="w-3 h-3"></i>
+                            </button>
+                            <button onclick="event.stopPropagation(); deleteFile(${i})" class="p-1.5 hover:text-red-500 hover:bg-slate-800 rounded transition-colors" title="Eliminar">
+                                <i data-lucide="trash-2" class="w-3 h-3"></i>
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    // Vista Colapsada (Solo iconos centrado)
+                    div.className = `flex justify-center py-3 cursor-pointer transition-all ${i === activeFileIndex ? 'bg-blue-600/10 text-blue-500 border-r-4 border-blue-500' : 'opacity-60 hover:opacity-100 hover:bg-slate-700/10'}`;
+                    div.innerHTML = `
+                        <div title="${f.name}">
+                            <i data-lucide="${icon}" class="w-5 h-5"></i>
+                        </div>
+                    `;
+                }
+                
+                div.onclick = () => { activeFileIndex = i; loadActiveFile(); renderFileList(); };
                 list.appendChild(div);
             });
             lucide.createIcons();
@@ -447,13 +526,11 @@ boton.addEventListener('click', () => {
             syncEditor();
         }
 
-        // --- Funciones de Gestión de Archivos (Nuevas) ---
         function renameFile(index) {
             const oldName = files[index].name;
             const newName = prompt("Cambiar nombre del archivo:", oldName);
             
             if (newName && newName.trim() !== "" && newName !== oldName) {
-                // Verificar que no exista otro archivo con ese nombre
                 if (files.some((f, i) => i !== index && f.name === newName.trim())) {
                     showToast("Ya existe un archivo con ese nombre");
                     return;
@@ -473,7 +550,7 @@ boton.addEventListener('click', () => {
             }
             if (confirm(`¿Estás seguro de que deseas eliminar '${files[index].name}'?`)) {
                 files.splice(index, 1);
-                activeFileIndex = 0; // Regresamos al primer archivo por seguridad
+                activeFileIndex = 0; 
                 renderFileList();
                 loadActiveFile();
                 if (isPreviewOpen) updatePreview();
@@ -489,11 +566,12 @@ boton.addEventListener('click', () => {
                 }
                 files.push({ name: name.trim(), content: "" });
                 activeFileIndex = files.length - 1;
+                // Si el panel está colapsado, lo abrimos para que el usuario pueda editar el nombre si quiere
+                if (!isSidebarOpen) toggleSidebar();
                 renderFileList(); 
                 loadActiveFile();
             }
         }
-        // ------------------------------------------------
 
         async function downloadProject() {
             const zip = new JSZip();
