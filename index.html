@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIVA IDE Pro - Academia AIVA</title>
+    
+    <!-- Frameworks y Librerías -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Prism.js para Resaltado de Sintaxis -->
+    <link id="prism-theme" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap');
+        
+        :root {
+            --bg-main: #0b0f1a;
+            --bg-sidebar: #0f172a;
+            --editor-bg: #1d1f21;
+            --text-color: #e2e8f0;
+            --border-color: #1e293b;
+        }
+
+        body.light-mode {
+            --bg-main: #f8fafc;
+            --bg-sidebar: #f1f5f9;
+            --editor-bg: #ffffff;
+            --text-color: #1e293b;
+            --border-color: #e2e8f0;
+        }
+
+        body { 
+            background-color: var(--bg-main); 
+            color: var(--text-color); 
+            font-family: 'Fira Code', monospace; 
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .editor-container {
+            position: relative;
+            flex-grow: 1;
+            overflow: hidden;
+            background: var(--editor-bg);
+        }
+
+        #real-textarea, #highlight-layer {
+            position: absolute;
+            top: 0;
+            left: 50px;
+            width: calc(100% - 50px);
+            height: 100%;
+            padding: 15px;
+            border: none;
+            font-family: 'Fira Code', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            tab-size: 4;
+            white-space: pre;
+            overflow: auto;
+            margin: 0;
+            box-sizing: border-box;
+        }
+
+        #real-textarea {
+            color: transparent;
+            background: transparent;
+            caret-color: var(--text-color);
+            z-index: 2;
+            resize: none;
+            outline: none;
+        }
+
+        #highlight-layer {
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        #line-numbers {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 50px;
+            height: 100%;
+            background: var(--bg-sidebar);
+            color: #64748b;
+            text-align: right;
+            padding: 15px 8px;
+            font-size: 14px;
+            line-height: 1.6;
+            user-select: none;
+            border-right: 1px solid var(--border-color);
+            z-index: 3;
+            overflow: hidden;
+        }
+
+        .sidebar { background-color: var(--bg-sidebar); border-right: 1px solid var(--border-color); }
+        .header { background-color: var(--bg-sidebar); border-bottom: 1px solid var(--border-color); }
+
+        #preview-container {
+            background: white;
+            transition: width 0.3s ease;
+        }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-sidebar); }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        .light-mode ::-webkit-scrollbar-thumb { background: #cbd5e1; }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <!-- Header -->
+    <header class="header p-3 flex justify-between items-center shadow-sm z-10">
+        <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2">
+                <div class="bg-blue-600 p-1.5 rounded-lg">
+                    <i data-lucide="cpu" class="text-white w-5 h-5"></i>
+                </div>
+                <h1 class="text-lg font-bold hidden md:block">AIVA <span class="text-blue-500">IDE</span></h1>
+            </div>
+            
+            <!-- Nombre del proyecto -->
+            <div class="flex items-center gap-2 bg-slate-800/10 light-mode:bg-slate-200/50 p-1 rounded border border-slate-700/30">
+                <i data-lucide="folder" class="w-3 h-3 text-slate-500 ml-1"></i>
+                <input type="text" id="projectNameInput" placeholder="Nombre_Proyecto" value="Mi_Proyecto_AIVA"
+                    class="bg-transparent text-xs outline-none w-40 font-mono py-1">
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-3">
+            <!-- Botón Modo Claro/Oscuro -->
+            <button onclick="toggleTheme()" class="p-2 rounded-full hover:bg-slate-700/20 transition-all" title="Cambiar Tema">
+                <i id="themeIcon" data-lucide="moon" class="w-5 h-5"></i>
+            </button>
+
+            <!-- Botón Cargar ZIP -->
+            <label class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-md text-xs border border-slate-600 cursor-pointer transition-all">
+                <i data-lucide="upload-cloud" class="w-4 h-4 text-blue-400"></i>
+                <span class="hidden sm:inline">Cargar ZIP</span>
+                <input type="file" id="zipInput" accept=".zip" class="hidden">
+            </label>
+
+            <button onclick="togglePreview()" id="previewBtn" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-md text-xs border border-slate-600 transition-all">
+                <i data-lucide="play" class="w-4 h-4"></i>
+                <span class="hidden sm:inline">Vista Previa</span>
+            </button>
+
+            <button onclick="downloadProject()" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-md text-xs transition-all font-bold shadow-lg shadow-blue-500/20">
+                <i data-lucide="download" class="w-4 h-4"></i>
+                <span class="hidden sm:inline">Descargar ZIP</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+        <aside class="sidebar w-64 flex flex-col shrink-0">
+            <div class="p-4 flex justify-between items-center border-b border-slate-800/10">
+                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Explorador</span>
+                <button onclick="createNewFile()" class="p-1 hover:bg-slate-700/20 rounded text-slate-400 hover:text-blue-500 transition-colors" title="Nuevo Archivo">
+                    <i data-lucide="file-plus" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <!-- Lista de Archivos -->
+            <div id="fileList" class="flex-1 overflow-y-auto py-2"></div>
+            
+            <div class="p-4 border-t border-slate-800/10 bg-black/5">
+                <div class="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase mb-2">
+                    <i data-lucide="check-circle" class="w-3 h-3 text-green-500"></i> Status
+                </div>
+                <div id="errorLog" class="text-[11px] opacity-70 italic font-mono">IDE Listo.</div>
+            </div>
+        </aside>
+
+        <main class="flex-1 flex flex-col min-w-0">
+            <div class="header px-4 py-2 flex items-center justify-between">
+                <div class="flex items-center gap-2 overflow-hidden">
+                    <i data-lucide="file-code" class="w-4 h-4 text-blue-500 shrink-0"></i>
+                    <span id="currentFileName" class="text-xs font-mono font-bold truncate">index.html</span>
+                </div>
+                <div id="fileTypeBadge" class="text-[9px] px-2 py-0.5 rounded bg-blue-500/20 text-blue-500 font-bold uppercase shrink-0">HTML</div>
+            </div>
+            
+            <div class="editor-container">
+                <div id="line-numbers">1</div>
+                <pre id="highlight-layer" aria-hidden="true"><code id="highlight-content" class="language-html"></code></pre>
+                <textarea id="real-textarea" spellcheck="false" autocomplete="off" placeholder="// Escribe código aquí..."></textarea>
+            </div>
+        </main>
+
+        <section id="preview-container" class="w-0 overflow-hidden flex flex-col border-l border-slate-800 shadow-2xl shrink-0">
+            <div class="bg-white border-b border-slate-200 p-2 flex justify-between items-center">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-2">Vista Previa</span>
+                <div class="flex gap-2 mr-2">
+                    <div class="w-2.5 h-2.5 rounded-full bg-red-400"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-yellow-400"></div>
+                    <div class="w-2.5 h-2.5 rounded-full bg-green-400"></div>
+                </div>
+            </div>
+            <iframe id="livePreview" class="w-full h-full bg-white border-none"></iframe>
+        </section>
+    </div>
+
+    <div id="toast" class="fixed bottom-6 right-6 transform translate-y-20 opacity-0 transition-all duration-300 flex items-center gap-3 bg-slate-800 text-white border border-slate-700 p-4 rounded-xl shadow-2xl z-50">
+        <p id="toastMessage" class="text-xs font-medium"></p>
+    </div>
+
+    <script>
+        let files = [
+            { 
+                name: 'index.html', 
+                content: `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Proyecto AIVA</title>
+  <!-- La vista previa inyectará el CSS automáticamente -->
+</head>
+<body>
+  <div class="card">
+    <h1>Academia <span class="highlight">AIVA</span></h1>
+    <p id="mensaje">Tu entorno de desarrollo profesional está listo.</p>
+    <button id="btnAccion">Ejecutar Código</button>
+  </div>
+  <!-- La vista previa inyectará el JS automáticamente -->
+</body>
+</html>` 
+            },
+            { 
+                name: 'style.css', 
+                content: `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+
+body {
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0f172a;
+  font-family: 'Inter', sans-serif;
+  color: white;
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2.5rem 3rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+  transition: transform 0.3s;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+}
+
+.highlight {
+  color: #3b82f6;
+}
+
+button {
+  margin-top: 1.5rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  font-size: 1rem;
+  font-weight: bold;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+button:hover {
+  background: #2563eb;
+  transform: scale(1.05);
+}
+
+.animado {
+  color: #10b981;
+  animation: latido 1s infinite;
+}
+
+@keyframes latido {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}` 
+            },
+            { 
+                name: 'script.js', 
+                content: `const boton = document.getElementById('btnAccion');
+const mensaje = document.getElementById('mensaje');
+let estado = false;
+
+boton.addEventListener('click', () => {
+  estado = !estado;
+  
+  if (estado) {
+    mensaje.textContent = "¡Código ejecutado con éxito! 🚀";
+    mensaje.classList.add('animado');
+    boton.textContent = "Revertir";
+    boton.style.background = "#ef4444";
+  } else {
+    mensaje.textContent = "Tu entorno de desarrollo profesional está listo.";
+    mensaje.classList.remove('animado');
+    boton.textContent = "Ejecutar Código";
+    boton.style.background = "#3b82f6";
+  }
+});` 
+            }
+        ];
+        let activeFileIndex = 0;
+        let isDarkMode = true;
+        let isPreviewOpen = false;
+
+        const textarea = document.getElementById('real-textarea');
+        const highlightContent = document.getElementById('highlight-content');
+        const lineNumbers = document.getElementById('line-numbers');
+        const previewContainer = document.getElementById('preview-container');
+        const livePreview = document.getElementById('livePreview');
+        const themeIcon = document.getElementById('themeIcon');
+        const projectNameInput = document.getElementById('projectNameInput');
+        const zipInput = document.getElementById('zipInput');
+
+        function init() {
+            lucide.createIcons();
+            renderFileList();
+            syncEditor();
+            
+            textarea.addEventListener('input', () => {
+                files[activeFileIndex].content = textarea.value;
+                syncEditor();
+                if(isPreviewOpen) updatePreview();
+            });
+
+            textarea.addEventListener('scroll', () => {
+                const hl = document.getElementById('highlight-layer');
+                hl.scrollTop = textarea.scrollTop;
+                hl.scrollLeft = textarea.scrollLeft;
+                lineNumbers.scrollTop = textarea.scrollTop;
+            });
+
+            textarea.addEventListener('keydown', (e) => {
+                if (e.key === 'Tab') {
+                    e.preventDefault();
+                    const start = textarea.selectionStart;
+                    textarea.value = textarea.value.substring(0, start) + "  " + textarea.value.substring(textarea.selectionEnd);
+                    textarea.selectionStart = textarea.selectionEnd = start + 2;
+                    syncEditor();
+                }
+            });
+
+            zipInput.addEventListener('change', handleZipUpload);
+        }
+
+        function syncEditor() {
+            const code = textarea.value;
+            const ext = files[activeFileIndex].name.split('.').pop() || '';
+            const langMap = { js: 'javascript', css: 'css', html: 'markup', md: 'markdown' };
+            const lang = langMap[ext] || 'markup';
+            
+            highlightContent.className = `language-${lang}`;
+            highlightContent.textContent = code + (code.endsWith('\n') ? ' ' : '');
+            Prism.highlightElement(highlightContent);
+
+            const lines = code.split('\n').length;
+            lineNumbers.innerHTML = Array.from({length: lines}, (_, i) => i + 1).join('<br>');
+            document.getElementById('fileTypeBadge').innerText = lang === 'markup' ? 'HTML' : lang.toUpperCase();
+        }
+
+        function toggleTheme() {
+            isDarkMode = !isDarkMode;
+            document.body.classList.toggle('light-mode', !isDarkMode);
+            const themeLink = document.getElementById('prism-theme');
+            themeLink.href = isDarkMode 
+                ? "https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css"
+                : "https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css";
+            themeIcon.setAttribute('data-lucide', isDarkMode ? 'moon' : 'sun');
+            lucide.createIcons();
+            syncEditor();
+        }
+
+        function updatePreview() {
+            // Encuentra dinámicamente el primer archivo de cada tipo, sin importar su nombre
+            const html = files.find(f => f.name.endsWith('.html'))?.content || "<h1>No hay archivo HTML</h1>";
+            const css = files.find(f => f.name.endsWith('.css'))?.content || "";
+            const js = files.find(f => f.name.endsWith('.js'))?.content || "";
+            
+            livePreview.srcdoc = `<html><head><style>${css}</style></head><body>${html}<script>${js}<\/script></body></html>`;
+        }
+
+        function togglePreview() {
+            isPreviewOpen = !isPreviewOpen;
+            // Ajustamos el ancho para que la vista previa se vea mejor
+            previewContainer.style.width = isPreviewOpen ? '45%' : '0px';
+            if (isPreviewOpen) updatePreview();
+        }
+
+        function renderFileList() {
+            const list = document.getElementById('fileList');
+            list.innerHTML = '';
+            files.forEach((f, i) => {
+                const div = document.createElement('div');
+                div.className = `group px-4 py-2 flex items-center justify-between cursor-pointer text-xs font-mono transition-all ${i === activeFileIndex ? 'bg-blue-600/10 text-blue-500 border-r-4 border-blue-500 font-bold' : 'opacity-60 hover:opacity-100 hover:bg-slate-700/10'}`;
+                div.onclick = () => { activeFileIndex = i; renderFileList(); loadActiveFile(); };
+                
+                let icon = 'file-code';
+                if(f.name.endsWith('.html')) icon = 'layout';
+                if(f.name.endsWith('.css')) icon = 'palette';
+
+                div.innerHTML = `
+                    <div class="flex items-center gap-2 overflow-hidden">
+                        <i data-lucide="${icon}" class="w-3.5 h-3.5 shrink-0"></i>
+                        <span class="truncate">${f.name}</span>
+                    </div>
+                    <div class="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onclick="event.stopPropagation(); renameFile(${i})" class="p-1.5 hover:text-blue-500 hover:bg-slate-800 rounded transition-colors" title="Renombrar">
+                            <i data-lucide="edit-2" class="w-3 h-3"></i>
+                        </button>
+                        <button onclick="event.stopPropagation(); deleteFile(${i})" class="p-1.5 hover:text-red-500 hover:bg-slate-800 rounded transition-colors" title="Eliminar">
+                            <i data-lucide="trash-2" class="w-3 h-3"></i>
+                        </button>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+            lucide.createIcons();
+        }
+
+        function loadActiveFile() {
+            if (files.length === 0) {
+                textarea.value = "";
+                document.getElementById('currentFileName').innerText = "Sin archivos";
+                document.getElementById('fileTypeBadge').innerText = "-";
+                return;
+            }
+            textarea.value = files[activeFileIndex].content;
+            document.getElementById('currentFileName').innerText = files[activeFileIndex].name;
+            syncEditor();
+        }
+
+        // --- Funciones de Gestión de Archivos (Nuevas) ---
+        function renameFile(index) {
+            const oldName = files[index].name;
+            const newName = prompt("Cambiar nombre del archivo:", oldName);
+            
+            if (newName && newName.trim() !== "" && newName !== oldName) {
+                // Verificar que no exista otro archivo con ese nombre
+                if (files.some((f, i) => i !== index && f.name === newName.trim())) {
+                    showToast("Ya existe un archivo con ese nombre");
+                    return;
+                }
+                files[index].name = newName.trim();
+                renderFileList();
+                if (index === activeFileIndex) loadActiveFile();
+                if (isPreviewOpen) updatePreview();
+                showToast("Archivo renombrado con éxito");
+            }
+        }
+
+        function deleteFile(index) {
+            if (files.length === 1) {
+                showToast("Debes mantener al menos un archivo.");
+                return;
+            }
+            if (confirm(`¿Estás seguro de que deseas eliminar '${files[index].name}'?`)) {
+                files.splice(index, 1);
+                activeFileIndex = 0; // Regresamos al primer archivo por seguridad
+                renderFileList();
+                loadActiveFile();
+                if (isPreviewOpen) updatePreview();
+            }
+        }
+
+        function createNewFile() {
+            const name = prompt("Nombre del nuevo archivo (ej: app.js):", "nuevo_archivo.js");
+            if (name && name.trim() !== "") {
+                if (files.some(f => f.name === name.trim())) {
+                    showToast("El archivo ya existe");
+                    return;
+                }
+                files.push({ name: name.trim(), content: "" });
+                activeFileIndex = files.length - 1;
+                renderFileList(); 
+                loadActiveFile();
+            }
+        }
+        // ------------------------------------------------
+
+        async function downloadProject() {
+            const zip = new JSZip();
+            const projName = projectNameInput.value.trim() || "Proyecto_AIVA";
+            files.forEach(f => zip.file(f.name, f.content));
+            const blob = await zip.generateAsync({ type: "blob" });
+            saveAs(blob, `${projName}.zip`);
+            showToast(`Descargando ${projName}.zip...`);
+        }
+
+        async function handleZipUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            try {
+                const zip = await JSZip.loadAsync(file);
+                const loadedFiles = [];
+                for (let path in zip.files) {
+                    if (!zip.files[path].dir) {
+                        const content = await zip.files[path].async("string");
+                        loadedFiles.push({ name: path, content });
+                    }
+                }
+                if (loadedFiles.length) {
+                    files = loadedFiles;
+                    activeFileIndex = 0;
+                    renderFileList();
+                    loadActiveFile();
+                    if(isPreviewOpen) updatePreview();
+                    showToast(`Cargados ${loadedFiles.length} archivos.`);
+                }
+            } catch (err) {
+                showToast("Error al procesar el archivo ZIP.");
+            }
+            e.target.value = "";
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            document.getElementById('toastMessage').innerText = msg;
+            t.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => t.classList.add('translate-y-20', 'opacity-0'), 3000);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
